@@ -1,0 +1,15 @@
+[Unit]
+Description=LeadFinder Tunnel URL Auto-Updater
+After=network-online.target leadfinder-agent.service
+Requires=leadfinder-agent.service
+
+[Service]
+Type=simple
+User=anikethan
+WorkingDirectory=/home/anikethan/Desktop/leadfinder
+ExecStart=/home/anikethan/Desktop/leadfinder/scripts/update-tunnel-url.sh
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

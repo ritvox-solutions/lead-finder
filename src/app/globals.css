@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces */
+  --color-bg-primary: #05070d;
+  --color-bg-panel: #0b0f1a;
+  --color-bg-inset: #0e1420;
+  --color-bg-elevated: #141a2a;
+  --color-border-muted: #1e2740;
+  --color-border-bright: #2a3760;
+
+  /* Text */
+  --color-text-primary: #e7ebf6;
+  --color-text-secondary: #9aa3b8;
+  --color-text-muted: #5b6478;
+
+  /* Accents */
+  --color-accent-cyan: #22d3ee;
+  --color-accent-emerald: #34d399;
+  --color-accent-amber: #fbbf24;
+  --color-accent-rose: #fb7185;
+  --color-accent-violet: #a78bfa;
+  --color-glow-cyan: rgba(34, 211, 238, 0.18);
+  --color-glow-emerald: rgba(52, 211, 153, 0.16);
+
+  /* Fonts */
+  --font-sans: "Inter", "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+  /* Radius */
+  --radius-xl: 1.5rem;
+
+  /* Animations */
+  --animate-radar-sweep: radar-sweep 3s linear infinite;
+  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
+  --animate-progress-stripes: progress-stripes 1.2s linear infinite;
+}
+
+@keyframes radar-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@keyframes progress-stripes {
+  from {
+    background-position: 1rem 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+:root {
+  --background: #05070d;
+  --foreground: #e7ebf6;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+  color: #e7ebf6;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2a3760 transparent;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a3760;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(11, 15, 26, 0.82);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-panel {
+    background: var(--color-bg-panel);
+    border: 1px solid var(--color-border-muted);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  }
+
+  .glow-border {
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .label-caps {
+    @apply font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted;
+  }
+
+  .mono-readout {
+    @apply font-mono text-sm font-medium tracking-wide;
+  }
+
+  .mono-xs {
+    @apply font-mono text-xs;
+  }
+
+  .neon-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-accent-cyan/60 text-accent-cyan font-mono text-xs font-semibold uppercase tracking-widest bg-accent-cyan/10 hover:bg-accent-cyan/20 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] hover:border-accent-cyan transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .neon-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-border-bright text-text-secondary font-mono text-xs font-semibold uppercase tracking-widest hover:text-text-primary hover:border-accent-cyan/40 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .neon-btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-accent-rose/50 text-accent-rose font-mono text-xs font-semibold uppercase tracking-widest bg-accent-rose/10 hover:bg-accent-rose/20 hover:shadow-[0_0_15px_rgba(251,113,133,0.3)] transition-all duration-300;
+  }
+
+  .terminal-input {
+    @apply w-full bg-bg-inset border border-border-muted rounded-lg py-2.5 px-3 text-text-primary font-mono text-sm focus:border-accent-cyan focus:outline-none focus:shadow-[0_0_8px_rgba(34,211,238,0.25)] transition-all duration-200;
+  }
+
+  .progress-bar {
+    @apply relative h-1 w-full overflow-hidden rounded-full bg-bg-inset;
+  }
+
+  .progress-bar-fill {
+    background: linear-gradient(90deg, var(--color-accent-cyan), var(--color-accent-emerald));
+    background-size: 1rem 100%;
+    animation: progress-stripes 1.2s linear infinite;
+  }
+}

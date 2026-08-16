@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+:root {
+  /* Defaults fall back to a neutral palette; the generator overrides these
+     per business category. Values mirror lib/site.ts PALETTES.other. */
+  --bg: #f6f7f8;
+  --bg-alt: #e9ebee;
+  --surface: #ffffff;
+  --text: #17181a;
+  --muted: #5c5f66;
+  --accent: #3f7c8c;
+  --accent-soft: #deecef;
+  --accent-2: #2a5a66;
+  --border: #dde1e4;
+  --gradient-from: #e9ebee;
+  --gradient-to: #f6f7f8;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Subtle grain for depth on large flat surfaces */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

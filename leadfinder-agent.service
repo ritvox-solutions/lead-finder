@@ -1,0 +1,22 @@
+[Unit]
+Description=LeadFinder Agent + Cloudflare Tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=anikethan
+WorkingDirectory=/home/anikethan/Desktop/leadfinder
+EnvironmentFile=/home/anikethan/Desktop/leadfinder/.env
+Environment=AGENT_PORT=8090
+Environment=AGENT_INTERVAL_SECONDS=1800
+Environment=AUTO_SCAN_ENABLED=true
+Environment=SCAN_INTERVAL_MINUTES=30
+ExecStart=/home/anikethan/Desktop/leadfinder/scripts/run-agent-and-tunnel.sh
+Restart=always
+RestartSec=20
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

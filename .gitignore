@@ -1,0 +1,11 @@
+node_modules/
+dist/
+engine-dist/
+sites/
+.env
+*.local
+.vercel/
+.data/
+agent-state.json
+.next/
+.vercel
