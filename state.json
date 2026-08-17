@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-17T05:40:17.516Z",
+  "updatedAt": "2026-08-17T05:58:41.054Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -1083,6 +1083,15 @@
     }
   },
   "sites": {
+    "trupti-tindi": {
+      "slug": "trupti-tindi",
+      "leadId": "osm:way:346422524",
+      "dir": "C:\\Users\\HP\\Desktop\\Leadfinder\\sites\\trupti-tindi",
+      "status": "built",
+      "liveUrl": null,
+      "createdAt": "2026-08-17T05:47:29.698Z",
+      "updatedAt": "2026-08-17T05:47:29.698Z"
+    },
     "godavari-konaseema-ruchulu": {
       "slug": "godavari-konaseema-ruchulu",
       "leadId": "osm:way:345926492",
