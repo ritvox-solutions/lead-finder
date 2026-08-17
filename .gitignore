@@ -9,3 +9,5 @@ sites/
 agent-state.json
 .next/
 .vercel
+AGENTS.md
+AGENT.md
