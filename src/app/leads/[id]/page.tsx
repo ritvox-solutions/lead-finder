@@ -2,14 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { readState } from "@/lib/gh";
+import { formatDateTime } from "@/lib/format";
 import AppShell from "@/components/AppShell";
 import { GlassCard } from "@/components/GlassCard";
 import { StatusBadge } from "@/components/StatusBadge";
+import { BuildSiteButton } from "@/components/BuildSiteButton";
 
 export const dynamic = "force-dynamic";
 
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+  const { id: rawId } = await params;
+  // Next 16 delivers dynamic-segment values percent-encoded (e.g. "osm%3Away%3A..."
+  // for "osm:way:..."), so decode before looking up the lead by its raw OSM id.
+  const id = decodeURIComponent(rawId);
   const state = await readState();
   const lead = state?.leads[id];
   if (!lead) notFound();
@@ -104,16 +109,21 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </div>
             </div>
           ) : (
-            <div className="p-5 font-mono text-sm text-text-muted/60">
-              No site generated yet. This lead is ready for the next build cycle.
+            <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+              <div className="font-mono text-sm text-text-muted/60">
+                No site generated yet. Approve a build to scaffold + deploy a preview.
+              </div>
+              {lead.status === "new" && (
+                <BuildSiteButton leadId={lead.id} name={lead.name} />
+              )}
             </div>
           )}
         </GlassCard>
       </section>
 
       <footer className="mt-6 flex flex-wrap gap-x-8 gap-y-2 font-mono text-xs text-text-muted/60">
-        <span>CREATED {lead.createdAt ? new Date(lead.createdAt).toLocaleString() : "—"}</span>
-        <span>UPDATED {lead.updatedAt ? new Date(lead.updatedAt).toLocaleString() : "—"}</span>
+        <span>CREATED {lead.createdAt ? formatDateTime(lead.createdAt) : "—"}</span>
+        <span>UPDATED {lead.updatedAt ? formatDateTime(lead.updatedAt) : "—"}</span>
       </footer>
     </AppShell>
   );

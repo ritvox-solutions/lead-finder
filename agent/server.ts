@@ -102,7 +102,12 @@ export function startAgentServer(): Server | null {
     }
 
     if (req.method === "GET" && url.pathname === "/state") {
-      const state = latestState ?? (await loadState().catch(() => null));
+      // Serve the in-memory snapshot when available. Before the first cycle
+      // finishes, latestState is null — fall back to a fresh snapshot built
+      // from the Postgres DB (source of truth) so we never 404 in that window.
+      let state = latestState;
+      if (!state) state = await buildState().catch(() => null);
+      if (!state) state = await loadState().catch(() => null);
       // Overlay live scan progress (kept in memory) so the dashboard console
       // can render the scan as it advances, even before the cycle refreshes.
       const { getScanProgress } = await import("./progress.js");

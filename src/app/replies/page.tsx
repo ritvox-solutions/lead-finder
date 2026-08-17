@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { MessageSquare, RefreshCw, ThumbsUp, Inbox } from "lucide-react";
 import { readState } from "@/lib/gh";
+import { formatDateTime } from "@/lib/format";
 import AppShell from "@/components/AppShell";
 import { GlassCard, StatTile } from "@/components/GlassCard";
 import { SourceTag } from "@/components/StatusBadge";
@@ -76,7 +77,7 @@ export default async function RepliesPage() {
                         <td className="px-5 py-3.5">
                           {lead ? <span className="text-accent-cyan hover:underline"><Link href={`/leads/${reply.leadId}`}>{lead.name}</Link></span> : <span className="text-text-muted/60">Unmatched</span>}
                         </td>
-                        <td className="px-5 py-3.5 text-right text-xs text-text-muted">{new Date(reply.seenAt).toLocaleString()}</td>
+                        <td className="px-5 py-3.5 text-right text-xs text-text-muted">{formatDateTime(reply.seenAt)}</td>
                       </tr>
                     );
                   })}
@@ -99,7 +100,7 @@ function ReplyCard({ reply, lead }: { reply: { sender: string; subject: string; 
             <span className="inline-flex items-center gap-1.5 rounded-full border border-accent-emerald/30 bg-accent-emerald/10 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-accent-emerald">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-emerald" /> Positive
             </span>
-            <span className="font-mono text-xs text-text-muted">{new Date(reply.seenAt).toLocaleString()}</span>
+            <span className="font-mono text-xs text-text-muted">{formatDateTime(reply.seenAt)}</span>
             {lead && (
               <Link href={`/leads/${reply.leadId}`} className="font-mono text-xs uppercase tracking-widest text-accent-cyan hover:underline">
                 → {lead.name}

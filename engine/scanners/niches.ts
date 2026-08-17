@@ -48,8 +48,8 @@ export function resolveNiche(raw: string): NicheTag[] | null {
   const tokens = s.split(/[\s,]+/).filter(Boolean);
   const found: NicheTag[] = [];
   for (const tok of tokens) {
-    if (NITCHE_SYNONYMS[tok]) {
-      for (const k of NITCHE_SYNONYMS[tok]) {
+    if (NICHE_SYNONYMS[tok]) {
+      for (const k of NICHE_SYNONYMS[tok]) {
         const tags = NICHE_MAP[k];
         if (tags) found.push(...tags);
       }
@@ -62,7 +62,7 @@ export function resolveNiche(raw: string): NicheTag[] | null {
 }
 
 /** Extra synonym spellings a user might type. */
-const NITCHE_SYNONYMS: Record<string, string[]> = {
+const NICHE_SYNONYMS: Record<string, string[]> = {
   gyms: ["gym"],
   pubs: ["pub"],
   bars: ["bar"],

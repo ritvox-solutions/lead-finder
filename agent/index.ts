@@ -4,8 +4,9 @@
  * Autonomous loop:
  *   1. Read state (from local file + GitHub, merge).
  *   2. If auto-scan enabled and interval elapsed: scan → enrich → store new leads.
- *   3. For each `new` lead with contact info (email or phone): build-site → deploy-site.
- *      Status becomes `deployed` + a preview URL is emailed to the owner.
+ *   3. BUILD GATE: sites are built ONLY when the owner clicks "Build Site" on
+ *      the dashboard (a `build` action) — never automatically. The site is
+ *      scaffolded, built, deployed and a preview URL is emailed to the owner.
  *   4. STOP at the approval gate: do NOT pitch until `approved`.
  *   5. Read pending approve/reject actions from GitHub/local; on `approve`:
  *      pitch (email the lead) → status `pitched`.
@@ -28,13 +29,14 @@ import {
   upsertSite,
   getSite,
   getLeads,
+  insertScan,
+  type LeadRec,
 } from "../engine/builder/database.js";
 import { sendMail } from "../engine/emailer.js";
 import { scanInbox } from "../engine/inbox.js";
 import { writeState, pullActions } from "./gh.js";
 import { startAgentServer, setState } from "./server.js";
-import { buildState, saveLocalState, recordManualScan, LOCAL_STATE } from "./state.js";
-import { existsSync } from "node:fs";
+import { buildState, saveLocalState, recordManualScan } from "./state.js";
 
 function log(msg: string) {
   console.log(`[${new Date().toISOString().slice(11, 19)}] ${msg}`);
@@ -84,18 +86,35 @@ async function runCycle() {
       continue;
     }
 
+    if (a.action === "build") {
+      // Build gate: the dashboard's "Build Site" button queues a build action
+      // for a lead. The site is built + deployed only after this explicit human
+      // approval, never automatically. `slug` here is the lead id (no site exists yet).
+      const lead = (await getLeads()).find((l) => l.id === a.slug);
+      if (!lead) {
+        log(`  -> no lead found for ${a.slug}, skipping`);
+        continue;
+      }
+      if (lead.status !== "new") {
+        log(`  -> lead ${lead.name} is ${lead.status}, skipping build (only 'new' leads build)`);
+        continue;
+      }
+      await buildSiteForLead(lead, state.settings.ownerEmail);
+      continue;
+    }
+
     log(`action: ${a.action} for ${a.slug}`);
-    const site = getSite(a.slug);
+    const site = await getSite(a.slug);
     if (!site) {
       log(`  -> no site found for ${a.slug}, skipping`);
       continue;
     }
     if (a.action === "approve") {
-      setLeadStatus(site.leadId ?? "", "approved");
-      upsertSite({ slug: a.slug, leadId: site.leadId, dir: site.dir, status: "approved", liveUrl: site.liveUrl ?? undefined });
+      await setLeadStatus(site.leadId ?? "", "approved");
+      await upsertSite({ slug: a.slug, leadId: site.leadId, dir: site.dir, status: "approved", liveUrl: site.liveUrl ?? undefined });
     } else if (a.action === "reject") {
-      setLeadStatus(site.leadId ?? "", "rejected");
-      upsertSite({ slug: a.slug, leadId: site.leadId, dir: site.dir, status: "rejected", liveUrl: site.liveUrl ?? undefined });
+      await setLeadStatus(site.leadId ?? "", "rejected");
+      await upsertSite({ slug: a.slug, leadId: site.leadId, dir: site.dir, status: "rejected", liveUrl: site.liveUrl ?? undefined });
     }
   }
 
@@ -105,6 +124,7 @@ async function runCycle() {
   if (state.settings.autoScanEnabled && elapsedMin >= state.settings.scanIntervalMinutes) {
     log(`scanning ${state.settings.scanArea} r=${state.settings.radiusKm}km ...`);
     const [latStr, lonStr] = state.settings.scanArea.split(",");
+    const scanId = `scan-${Date.now()}`;
     const { businesses, totalFound } = await scanOverpass(
       { lat: Number(latStr), lon: Number(lonStr), radiusKm: state.settings.radiusKm },
       true /* only businesses with no website — the lead premise */
@@ -121,74 +141,33 @@ async function runCycle() {
 
     log(`  ${leads.length} leads ≥ score ${state.settings.minScore}`);
     for (const l of leads) {
-      upsertLead({ id: l.id, name: l.name, category: l.category, phone: l.phone ?? "", email: l.email ?? "", status: "new" });
+      await upsertLead({ id: l.id, name: l.name, category: l.category, phone: l.phone ?? "", email: l.email ?? "", status: "new", scanId });
     }
+
+    // Record this auto-scan sweep so the dashboard can group its results.
+    await insertScan({
+      id: scanId,
+      location: state.settings.scanArea,
+      label: state.settings.scanArea,
+      niche: "",
+      radiusKm: state.settings.radiusKm,
+      found: leads.length,
+      added: leads.length,
+      source: "auto",
+      coords: { lat: Number(latStr), lon: Number(lonStr) },
+      at: now(),
+      ok: true,
+    });
 
     state.settings.lastScanAt = now();
   }
 
-  // 3. For each `new`/`built` lead with contact, build + deploy + email preview.
-  const dbLeads = getLeads();
-  for (const l of dbLeads) {
-    if (l.status !== "new") continue;
-    // Need an email or phone to reach them.
-    if (!l.email && !l.phone) {
-      log(`lead ${l.name}: skip (no email/phone)`);
-      continue;
-    }
-    log(`building site for ${l.name} (${l.email || l.phone})`);
-    try {
-      const biz = {
-        id: l.id,
-        name: l.name,
-        lat: -1,
-        lon: -1,
-        category: l.category as any,
-        tags: {},
-        website: null,
-        phone: l.phone ?? null,
-        email: l.email ?? null,
-        street: null,
-        city: null,
-        postcode: null,
-        openingHours: null,
-        instagram: null,
-        facebook: null,
-        raw: {},
-      };
-      setLeadStatus(l.id, "building", undefined);
-      const { dir, config } = await scaffoldSite(biz, state.settings.ownerEmail);
-      // Build it
-      const { execa } = await import("execa");
-      log(`  installing deps...`);
-      await execa("npm", ["install", "--no-audit", "--no-fund"], { cwd: dir });
-      log(`  building Next...`);
-      await execa("npm", ["run", "build"], { cwd: dir });
-
-      upsertSite({ slug: config.slug, leadId: l.id, dir, status: "built" });
-      setLeadStatus(l.id, "built", config.slug);
-
-      // Deploy to Vercel
-      log(`  deploying to Vercel...`);
-      const { url } = await deployVercel(dir, config.slug);
-      upsertSite({ slug: config.slug, leadId: l.id, dir, status: "deployed", liveUrl: url });
-      setLeadStatus(l.id, "deployed", config.slug, url);
-      log(`  deployed: ${url}`);
-
-      // Email the owner the preview link
-      await sendMail({
-        to: state.settings.ownerEmail,
-        subject: `Site preview: ${l.name} (${config.slug})`,
-        text: `A site has been built for ${l.name}.\n\nPreview: ${url}\n\nApprove: https://leadfinder.vercel.app (or your dashboard URL)\n\nIt will NOT be pitched to the lead until you approve it.`,
-      });
-      log(`  preview emailed to ${state.settings.ownerEmail}`);
-    } catch (e: any) {
-      log(`  build/deploy error: ${e.message}`);
-      setLeadStatus(l.id, "rejected");
-    }
-  }
+  // 3. BUILD GATE: sites are no longer built automatically. A site is only
+  //    scaffolded, built and deployed after the owner clicks "Build Site" on
+  //    the dashboard, which queues a `build` action handled above.
 
   // 4. Pitch approved leads (email outreach from your Gmail).
+  const dbLeads = await getLeads();
   for (const l of dbLeads) {
     if (l.status !== "approved") continue;
     log(`pitching ${l.name}...`);
@@ -226,34 +205,38 @@ async function runCycle() {
           text: outreach.body,
         });
         log(`  emailed ${l.email}`);
-        setLeadStatus(l.id, "pitched");
+        await setLeadStatus(l.id, "pitched");
       } else if (l.phone) {
         // Phone-only: we can't SMS without WhatsApp/Twilio. Just log + tell the owner.
         log(`  note: lead has no email — pitch saved in DB (would SMS via Twilio later)`);
-        setLeadStatus(l.id, "pitched");
+        await setLeadStatus(l.id, "pitched");
       }
     } catch (e: any) {
       log(`  pitch error: ${e.message}`);
     }
   }
 
-  // 5. Check replies (Gmail IMAP).
-  try {
-    const replies = await scanInbox(60);
-    const positive = replies.filter((r) => r.positive);
-    if (positive.length > 0) {
-      log(`  ${positive.length} positive replies`);
-      for (const r of positive) {
-        const owner = state.settings.ownerEmail;
-        await sendMail({
-          to: owner,
-          subject: `Positive reply: ${r.businessName || "lead"}`,
-          text: `From: ${r.from}\nSubject: ${r.subject}\n\n${r.snippet}`,
-        });
+  // 5. Check replies (Gmail IMAP). Skipped entirely when Gmail isn't
+  //    configured (GMAIL_USER/GMAIL_APP_PASSWORD empty in .env) so an
+  //    email-less setup doesn't log an error every cycle.
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    try {
+      const replies = await scanInbox(60);
+      const positive = replies.filter((r) => r.positive);
+      if (positive.length > 0) {
+        log(`  ${positive.length} positive replies`);
+        for (const r of positive) {
+          const owner = state.settings.ownerEmail;
+          await sendMail({
+            to: owner,
+            subject: `Positive reply: ${r.businessName || "lead"}`,
+            text: `From: ${r.from}\nSubject: ${r.subject}\n\n${r.snippet}`,
+          });
+        }
       }
+    } catch (e: any) {
+      log(`  reply scan error: ${e.message}`);
     }
-  } catch (e: any) {
-    log(`  reply scan error: ${e.message}`);
   }
 
   // 6. Persist + push state to GitHub / local + HTTP for the dashboard.
@@ -268,6 +251,69 @@ async function runCycle() {
   }
 }
 
+/**
+ * Build gate step: scaffold + build + deploy a site for one lead, then email
+ * the owner the preview link. Only runs when the owner explicitly approved the
+ * build from the dashboard (a `build` action) — never automatically.
+ */
+async function buildSiteForLead(l: LeadRec, ownerEmail: string): Promise<void> {
+  // Need an email or phone to reach them.
+  if (!l.email && !l.phone) {
+    log(`lead ${l.name}: skip (no email/phone)`);
+    return;
+  }
+  log(`building site for ${l.name} (${l.email || l.phone})`);
+  try {
+    const biz = {
+      id: l.id,
+      name: l.name,
+      lat: -1,
+      lon: -1,
+      category: l.category as any,
+      tags: {},
+      website: null,
+      phone: l.phone ?? null,
+      email: l.email ?? null,
+      street: null,
+      city: null,
+      postcode: null,
+      openingHours: null,
+      instagram: null,
+      facebook: null,
+      raw: {},
+    };
+    await setLeadStatus(l.id, "building", undefined);
+    const { dir, config } = await scaffoldSite(biz, ownerEmail);
+    // Build it
+    const { execa } = await import("execa");
+    log(`  installing deps...`);
+    await execa("npm", ["install", "--no-audit", "--no-fund"], { cwd: dir });
+    log(`  building Next...`);
+    await execa("npm", ["run", "build"], { cwd: dir });
+
+    await upsertSite({ slug: config.slug, leadId: l.id, dir, status: "built" });
+    await setLeadStatus(l.id, "built", config.slug);
+
+    // Deploy to Vercel
+    log(`  deploying to Vercel...`);
+    const { url } = await deployVercel(dir, config.slug);
+    await upsertSite({ slug: config.slug, leadId: l.id, dir, status: "deployed", liveUrl: url });
+    await setLeadStatus(l.id, "deployed", config.slug, url);
+    log(`  deployed: ${url}`);
+
+    // Email the owner the preview link
+    await sendMail({
+      to: ownerEmail,
+      subject: `Site preview: ${l.name} (${config.slug})`,
+      text: `A site has been built for ${l.name}.\n\nPreview: ${url}\n\nApprove: https://leadfinder.vercel.app (or your dashboard URL)\n\nIt will NOT be pitched to the lead until you approve it.`,
+    });
+    log(`  preview emailed to ${ownerEmail}`);
+  } catch (e: any) {
+    log(`  build/deploy error: ${e.message}`);
+    await setLeadStatus(l.id, "rejected");
+  }
+}
+
 // --- main loop ---
 async function main() {
   log("agent starting");
@@ -275,10 +321,24 @@ async function main() {
   // GitHub write access isn't available. AGENT_PORT=0 (default) disables it.
   startAgentServer();
 
-  // Seed the DB with the local state if it's the first run.
-  if (!existsSync(LOCAL_STATE)) {
-    const seed = await buildState();
-    saveLocalState(seed);
+  // Warn once at startup if Gmail isn't configured, so the missing-secrets
+  // state is visible without erroring every cycle.
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    log(`WARNING: GMAIL_USER / GMAIL_APP_PASSWORD not set in .env — reply scanning, preview emails and outreach are disabled`);
+  }
+  if (!process.env.OWNER_EMAIL) {
+    log(`WARNING: OWNER_EMAIL not set in .env — preview emails have no recipient`);
+  }
+
+  // Publish a state snapshot immediately so the dashboard's /api/state never
+  // 404s while the first cycle is still running. buildState() reads the Postgres
+  // DB (the source of truth) and carries over persisted settings.
+  try {
+    const initial = await buildState();
+    saveLocalState(initial);
+    setState(initial);
+  } catch (e: any) {
+    log(`initial state snapshot failed: ${e.message}`);
   }
 
   // If INTERVAL_SECONDS is set, loop; otherwise run once.

@@ -31,6 +31,8 @@ export interface Lead {
   status: LeadStatus;
   siteSlug: string | null;
   siteUrl: string | null;
+  /** Which scan produced this lead (id in AppState.scans). */
+  scanId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +56,22 @@ export interface Reply {
   positive: boolean;
   reasons: string;
   seenAt: string;
+}
+
+/** A completed scan sweep — the grouping unit for lead results. */
+export interface ScanRecord {
+  id: string;
+  location: string;
+  label: string;
+  niche: string;
+  radiusKm: number;
+  found: number;
+  added: number;
+  source: string;
+  coords: { lat: number; lon: number } | null;
+  at: string;
+  ok: boolean;
+  error?: string;
 }
 
 export interface ManualScanInfo {
@@ -122,13 +140,15 @@ export interface AppState {
   leads: Record<string, Lead>;
   sites: Record<string, Site>;
   replies: Reply[];
+  /** Scan history — each sweep grouped separately on the dashboard. */
+  scans: ScanRecord[];
   pendingActions: PendingAction[];
   scanProgress?: ScanProgress | null;
 }
 
 export interface PendingAction {
   id: string;
-  action: "approve" | "reject";
+  action: "approve" | "reject" | "build";
   slug: string;
   requestedBy: string;
   requestedAt: string;

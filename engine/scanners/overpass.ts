@@ -1,5 +1,6 @@
 import type { Business, Category } from "../types.js";
 import { nicheSpec } from "./niches.js";
+import { getOsmUserAgent, sleep } from "../osm/usage.js";
 
 /**
  * Overpass API endpoint. Public instance is fine for light usage; heavy scans
@@ -7,6 +8,12 @@ import { nicheSpec } from "./niches.js";
  */
 const OVERPASS_URL = process.env.OVERPASS_URL ?? "https://overpass.kumi.systems/api/interpreter";
 const FALLBACK_URLS = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
+
+/**
+ * Optional pacing between per-key Overpass queries (ms). Free mirrors rate-limit
+ * aggressively; set OVERPASS_DELAY_MS (e.g. 1000) to slow scans down politely.
+ */
+const QUERY_DELAY_MS = Number(process.env.OVERPASS_DELAY_MS ?? 0);
 
 const TOP_KEYS = ["amenity", "shop", "office", "tourism", "craft", "leisure", "healthcare", "man_made"];
 
@@ -78,7 +85,7 @@ export function buildQuery(
     if (parts.length !== 4 || [s, w, n, e].some((x) => Number.isNaN(x))) {
       throw new Error(`Invalid bbox "${params.bbox}" (want "south,west,north,east")`);
     }
-    if (s >= n || w >= e) throw new Error(`Invalid bbox order (want south<east, west<north)`);
+    if (s >= n || w >= e) throw new Error(`Invalid bbox order (want south<north, west<east)`);
     area = `(${s},${w},${n},${e})`;
   } else if (params.lat !== undefined && params.lon !== undefined) {
     const r = params.radiusKm ?? 3;
@@ -139,7 +146,7 @@ async function runQuery(endpoint: string, query: string, started: number): Promi
     body: `data=${encodeURIComponent(query)}`,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "User-Agent": "leadfinder/1.0 (local business website lead finder; contact: yourname@example.com)",
+      "User-Agent": getOsmUserAgent(),
     },
     signal: AbortSignal.timeout(45_000),
   });
@@ -198,24 +205,6 @@ export async function scanOverpass(params: ScanParams, noWebsiteOnly: boolean): 
     return false;
   }
 
-  /** Try every endpoint/attempt for one key regex; merge matches into byId. Returns served? */
-  async function serveKey(keyRegex: string): Promise<boolean> {
-    const query = buildQuery(params, noWebsiteOnly, keyRegex, valueRegex);
-    for (const endpoint of endpoints) {
-      try {
-        const result = await runQuery(endpoint, query, started);
-        if (!result) continue;
-        for (const b of result.businesses) {
-          if (!byId.has(b.id)) byId.set(b.id, b);
-        }
-        return true;
-      } catch {
-        /* try next endpoint */
-      }
-    }
-    return false;
-  }
-
   let idx = 0;
   let served = 0;
   let failedKeys = 0;
@@ -224,6 +213,7 @@ export async function scanOverpass(params: ScanParams, noWebsiteOnly: boolean): 
       const i = idx++;
       if (await scanKey(keyPatterns[i], endpoints, started, byId)) served++;
       else failedKeys++;
+      if (QUERY_DELAY_MS > 0) await sleep(QUERY_DELAY_MS);
     }
   };
   await Promise.all(Array.from({ length: Math.min(CONCURRENCY, keyPatterns.length) }, worker));

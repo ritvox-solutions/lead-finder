@@ -28,7 +28,6 @@ export const osmTagProvider: ContactProvider = {
       const website = b.website ?? t["website"] ?? t["contact:website"] ?? t["url"] ?? null;
       const instagram = t["contact:instagram"] ?? null;
       const facebook = t["contact:facebook"] ?? null;
-      const found = email || instagram || facebook;
       if (email || phone || website || instagram || facebook) {
         out.set(b.id, {
           email,

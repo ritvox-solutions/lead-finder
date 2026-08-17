@@ -13,7 +13,7 @@ if [ -f .env ]; then export $(grep -v '^#' .env | xargs); fi
 
 export AGENT_PORT=8090
 export AGENT_INTERVAL_SECONDS="${AGENT_INTERVAL_SECONDS:-1800}"
-export AUTO_SCAN_ENABLED="${AUTO_SCAN_ENABLED:-true}"
+export AUTO_SCAN_ENABLED="${AUTO_SCAN_ENABLED:-false}"
 
 mkdir -p .data
 CF_LOG=".data/cloudflared.log"

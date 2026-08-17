@@ -10,7 +10,7 @@ WorkingDirectory=/home/anikethan/Desktop/leadfinder
 EnvironmentFile=/home/anikethan/Desktop/leadfinder/.env
 Environment=AGENT_PORT=8090
 Environment=AGENT_INTERVAL_SECONDS=1800
-Environment=AUTO_SCAN_ENABLED=true
+Environment=AUTO_SCAN_ENABLED=false
 Environment=SCAN_INTERVAL_MINUTES=30
 ExecStart=/home/anikethan/Desktop/leadfinder/scripts/run-agent-and-tunnel.sh
 Restart=always

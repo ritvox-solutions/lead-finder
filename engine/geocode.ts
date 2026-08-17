@@ -14,8 +14,10 @@ export interface GeocodeResult {
   source: "literal" | "nominatim" | "google";
 }
 
+import { getOsmUserAgent, sleep } from "./osm/usage.js";
+
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "leadfinder/1.0 (local business website lead finder; contact: shettyanikethand@gmail.com)";
+const USER_AGENT = getOsmUserAgent();
 const GOOGLE_KEY = process.env.GOOGLE_MAPS_KEY ?? process.env.GOOGLE_PLACES_KEY ?? "";
 
 export async function geocodePlace(query: string): Promise<GeocodeResult> {
@@ -48,9 +50,21 @@ function parseLiteralCoords(s: string): { lat: number; lon: number } | null {
 }
 
 async function geocodeNominatim(query: string): Promise<GeocodeResult | null> {
-  // Try as-is first, then retry appending ", India" (common in this workflow).
-  const attempts = [query, `${query}, India`];
-  for (const q of attempts) {
+  // Build candidate queries from most to least specific. Nominatim matches
+  // exact strings, so a single typo (e.g. "Yelahanka Benagaluru") returns
+  // nothing — dropping trailing tokens recovers the well-formed prefix
+  // ("Yelahanka"). Each candidate also gets a ", India" variant, common in
+  // this workflow.
+  const attempts: string[] = [query, `${query}, India`];
+  const words = query.split(/[\s,]+/).filter(Boolean);
+  while (words.length > 1) {
+    words.pop();
+    const shorter = words.join(" ");
+    attempts.push(shorter, `${shorter}, India`);
+  }
+  // Nominatim's usage policy is max 1 request/second — pause between attempts.
+  for (const [i, q] of attempts.entries()) {
+    if (i > 0) await sleep(1100);
     try {
       const url = new URL(NOMINATIM_URL);
       url.searchParams.set("q", q);
@@ -62,15 +76,17 @@ async function geocodeNominatim(query: string): Promise<GeocodeResult | null> {
         signal: AbortSignal.timeout(15_000),
       });
       if (!res.ok) continue;
-      const data = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>;
-      if (data && data.length > 0) {
-        return {
-          lat: Number(data[0].lat),
-          lon: Number(data[0].lon),
-          displayName: data[0].display_name,
-          source: "nominatim",
-        };
-      }
+      const data = (await res.json()) as Array<{ lat: string; lon: string; display_name: string; class?: string }>;
+      if (!data || data.length === 0) continue;
+      const exact = i < 2; // the as-typed query and its ", India" variant
+      const hit = exact ? data[0] : data.find((r) => r.class === "place");
+      if (!hit) continue;
+      return {
+        lat: Number(hit.lat),
+        lon: Number(hit.lon),
+        displayName: hit.display_name,
+        source: "nominatim",
+      };
     } catch {
       /* fall through to next attempt */
     }

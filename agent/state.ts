@@ -5,8 +5,8 @@
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { getDb, getLeads } from "../engine/builder/database.js";
-import type { AppState, Lead, Site, Reply, ManualScanInfo } from "./types.js";
+import { getLeads, getScans, getSites, getReplies } from "../engine/builder/database.js";
+import type { AppState, Lead, Site, Reply, ManualScanInfo, ScanRecord } from "./types.js";
 import { getScanProgress } from "./progress.js";
 
 export const STATE_DIR = join(process.cwd(), ".data");
@@ -17,9 +17,9 @@ function now(): string {
   return new Date().toISOString();
 }
 
-/** Build an AppState snapshot from the SQLite DB (source of truth on the agent). */
+/** Build an AppState snapshot from the Postgres DB (source of truth on the agent). */
 export async function buildState(): Promise<AppState> {
-  const dbLeads = getLeads();
+  const dbLeads = await getLeads();
   const leads: Record<string, Lead> = {};
   for (const l of dbLeads) {
     leads[l.id] = {
@@ -45,27 +45,29 @@ export async function buildState(): Promise<AppState> {
       status: l.status,
       siteSlug: l.siteSlug ?? null,
       siteUrl: l.siteUrl ?? null,
+      scanId: l.scanId ?? null,
       createdAt: l.createdAt,
       updatedAt: l.createdAt,
     };
   }
 
-  // Pull sites from DB via raw query
+  // Pull sites from DB
   const sites: Record<string, Site> = {};
-  const rows = (getDb()
-    .prepare(
-      `SELECT slug, lead_id as leadId, dir, status, live_url as liveUrl, created_at as createdAt FROM sites ORDER BY created_at DESC`
-    )
-    .all() as { slug: string; leadId: string | null; dir: string; status: string; liveUrl: string | null; createdAt: string }[])
-    .map((r) => ({ slug: r.slug, leadId: r.leadId, dir: r.dir, status: r.status as any, liveUrl: r.liveUrl, createdAt: r.createdAt, updatedAt: r.createdAt }));
-  for (const s of rows) sites[s.slug] = s;
+  const siteRows = await getSites();
+  for (const r of siteRows) {
+    sites[r.slug] = {
+      slug: r.slug,
+      leadId: r.leadId,
+      dir: r.dir,
+      status: r.status as any,
+      liveUrl: r.liveUrl,
+      createdAt: r.createdAt,
+      updatedAt: r.createdAt,
+    };
+  }
 
   // Replies
-  const replyRows = getDb()
-    .prepare(
-      `SELECT id, lead_id as leadId, sender, subject, snippet, positive, reasons, seen_at as seenAt FROM replies ORDER BY seen_at DESC`
-    )
-    .all() as Reply[];
+  const replyRows = (await getReplies()) as unknown as Reply[];
 
   // Carry over persisted settings + last scan info from the local state file.
   let lastScanAt = "";
@@ -77,6 +79,22 @@ export async function buildState(): Promise<AppState> {
     lastManualScan = parsed?.settings?.lastManualScan ?? null;
   } catch {}
 
+  // Full scan history (each scan = one sweep, leads tagged with scanId).
+  const scans: ScanRecord[] = (await getScans()).map((s) => ({
+    id: s.id,
+    location: s.location,
+    label: s.label ?? s.location,
+    niche: s.niche ?? "",
+    radiusKm: s.radiusKm,
+    found: s.found,
+    added: s.added,
+    source: s.source ?? "",
+    coords: s.lat != null && s.lon != null ? { lat: s.lat, lon: s.lon } : null,
+    at: s.at,
+    ok: s.ok === 1,
+    error: s.error ?? undefined,
+  }));
+
   return {
     version: 1,
     updatedAt: now(),
@@ -87,7 +105,7 @@ export async function buildState(): Promise<AppState> {
       yourName: process.env.YOUR_NAME ?? "Anikethan",
       yourBusiness: process.env.YOUR_BUSINESS ?? "Webly",
       ownerEmail: process.env.OWNER_EMAIL ?? "shettyanikethand@gmail.com",
-      autoScanEnabled: String(process.env.AUTO_SCAN_ENABLED ?? "true") === "true",
+      autoScanEnabled: String(process.env.AUTO_SCAN_ENABLED ?? "false") === "true",
       scanIntervalMinutes: Number(process.env.SCAN_INTERVAL_MINUTES ?? 30),
       lastScanAt,
       lastManualScan,
@@ -95,6 +113,7 @@ export async function buildState(): Promise<AppState> {
     leads,
     sites,
     replies: replyRows,
+    scans,
     pendingActions: [],
     scanProgress: getScanProgress(),
   };

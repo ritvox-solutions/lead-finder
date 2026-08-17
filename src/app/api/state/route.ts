@@ -1,4 +1,4 @@
-import { readState } from "@/lib/gh";
+import { readState, fetchWithTimeout } from "@/lib/gh";
 import type { AppState } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -12,7 +12,7 @@ export async function GET() {
     const agentUrl = process.env.LEADFINDER_AGENT_URL;
     if (agentUrl) {
       try {
-        const res = await fetch(`${agentUrl.replace(/\/+$/, "")}/state`, { cache: "no-store" });
+        const res = await fetchWithTimeout(`${agentUrl.replace(/\/+$/, "")}/state`);
         if (res.ok) {
           const live = (await res.json()) as AppState;
           return NextResponse.json(live);

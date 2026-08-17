@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { ScanSearch, Contact2, Zap, GitBranch, Check, RotateCcw, AlertTriangle } from "lucide-react";
 import { readState } from "@/lib/gh";
+import { formatDateTime } from "@/lib/format";
 import AppShell from "@/components/AppShell";
 import { GlassCard, StatTile } from "@/components/GlassCard";
 
@@ -36,7 +37,7 @@ export default async function SettingsPage() {
             <SettingRow label="Scan Center (lat,lng)">{settings.scanArea}</SettingRow>
             <SettingRow label="Radius (km)">{settings.radiusKm}</SettingRow>
             <SettingRow label="Min Score">{settings.minScore}</SettingRow>
-            <SettingRow label="Last Scan">{settings.lastScanAt ? new Date(settings.lastScanAt).toLocaleString() : "—"}</SettingRow>
+            <SettingRow label="Last Scan">{settings.lastScanAt ? formatDateTime(settings.lastScanAt) : "—"}</SettingRow>
             {settings.lastManualScan && (
               <SettingRow label="Last Manual Scan">
                 {settings.lastManualScan.label} — {settings.lastManualScan.added} added / {settings.lastManualScan.found} found

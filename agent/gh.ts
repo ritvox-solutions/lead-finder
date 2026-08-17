@@ -15,7 +15,8 @@ const GH_TOKEN = process.env.GITHUB_TOKEN;
 const GH_OWNER = process.env.GH_OWNER ?? "anikethanshetty";
 const GH_REPO = process.env.GH_REPO ?? "leadfinder-state";
 const GH_BRANCH = process.env.GH_BRANCH ?? "main";
-const STATE_FILE = process.env.LEADFINDER_STATE_FILE ?? ".data/agent-state.json";
+// || (not ??) so an empty-string env var falls back to the default path.
+const STATE_FILE = process.env.LEADFINDER_STATE_FILE || ".data/agent-state.json";
 const STATE_PATH = "state.json";
 const ACTIONS_PATH = "actions.ndjson";
 
@@ -131,15 +132,32 @@ export interface PulledAction extends PendingAction {
 }
 
 /**
- * Read pending actions from actions.ndjson on GitHub (or local fallback).
- * Returns the parsed actions. Note: the dashboard writes these; the agent
- * consumes them and the next dashboard refresh will see status changes (the
- * actions themselves are ephemeral — they just need to be seen once).
+ * Read pending actions from actions.ndjson — BOTH the local file and GitHub.
+ *
+ * The dashboard writes actions through one of two transports depending on its
+ * own token: GitHub (write-capable token) or the agent's HTTP /action endpoint
+ * (which appends to the local file). Either can hold pending actions at any
+ * time, so we merge both sources instead of preferring one and silently
+ * dropping the other — otherwise a click "does nothing" on the agent side.
  */
 export async function pullActions(): Promise<PendingAction[]> {
   const client = gh();
   const localActions = join(STATE_DIR, "actions.ndjson");
+  const out: PendingAction[] = [];
 
+  // 1. Local file (written by the agent's own HTTP /action handler).
+  if (existsSync(localActions)) {
+    try {
+      const text = readFileSync(localActions, "utf8");
+      out.push(...parseActions(text));
+      // Clear consumed
+      writeFileSync(localActions, "", "utf8");
+    } catch (e: any) {
+      console.warn("[agent] local pullActions failed:", e.message);
+    }
+  }
+
+  // 2. GitHub (written by the dashboard's appendAction when its token can write).
   if (client) {
     try {
       const res = await client.rest.repos.getContent({
@@ -163,7 +181,7 @@ export async function pullActions(): Promise<PendingAction[]> {
         sha,
         branch: GH_BRANCH,
       });
-      return parseActions(text);
+      out.push(...parseActions(text));
     } catch (e: any) {
       if (e.status !== 404) {
         console.warn("[agent] GitHub pullActions failed:", e.status ?? e.message);
@@ -171,14 +189,7 @@ export async function pullActions(): Promise<PendingAction[]> {
     }
   }
 
-  // Local fallback
-  if (!existsSync(localActions)) return [];
-  const text = readFileSync(localActions, "utf8");
-  // Clear consumed
-  try {
-    writeFileSync(localActions, "", "utf8");
-  } catch {}
-  return parseActions(text);
+  return out;
 }
 
 function parseActions(text: string): PendingAction[] {

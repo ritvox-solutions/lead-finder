@@ -1,5 +1,4 @@
 import { writeFileSync, readFileSync } from "node:fs";
-import { getDb } from "../engine/builder/database.js";
 
 const GH_TOKEN = process.env.GITHUB_TOKEN;
 const OWNER = process.env.GH_OWNER ?? "Anikethanshetty";

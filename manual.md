@@ -33,7 +33,7 @@ leadfinder/
 │   │   ├── factory.ts            # Per-category 3D scene + tagline
 │   │   ├── palette.ts            # Color palette per category
 │   │   ├── vercel.ts             # Deploy to Vercel (create project + prod deploy)
-│   │   └── database.ts           # SQLite storage (leads, sites, replies)
+│   │   └── database.ts           # Neon Postgres storage (leads, sites, replies, scans)
 │   ├── emailer.ts                # Gmail SMTP send
 │   └── inbox.ts                  # Gmail IMAP positive-reply scanner
 ├── templates/next-site-baseline/ # The Next.js site template (3D, scroll effects)
@@ -76,7 +76,7 @@ YOUR_BUSINESS=Webly
 SCAN_AREA=51.5074,-0.1278
 SCAN_RADIUS_KM=3
 MIN_SCORE=40
-AUTO_SCAN_ENABLED=true
+AUTO_SCAN_ENABLED=false   # set true to scan on every due cycle (off by default)
 SCAN_INTERVAL_MINUTES=30
 ```
 
@@ -179,6 +179,34 @@ npx tsx engine/index.ts check-replies
 
 ## WhatsApp (paused)
 WhatsApp outreach via your personal number is **not enabled yet**. It requires `whatsapp-web.js` (unofficial, QR-login per session) or the official Twilio/WhatsApp Business API (Meta Business Manager + phone + billing). Email outreach is active now; WhatsApp is a documented future phase (see `manual.md` WhatsApp section). Re-enable when ready.
+
+## Data sources: OpenStreetMap
+
+All business discovery is built on free OpenStreetMap services — no API key
+required. Two are used:
+
+### Overpass API (`engine/scanners/overpass.ts`)
+Queries OSM for businesses that have **no website** (`[!"website"][!"contact:website"][!"url"]`)
+within a radius or bbox, split into one query per top-level key
+(`amenity`, `shop`, `office`, …) so free mirrors can serve them. Dedupes by OSM
+id and falls back across mirror endpoints if one is rate-limited or down.
+
+Env knobs:
+- `OVERPASS_URL` — primary mirror (default `https://overpass.kumi.systems/api/interpreter`)
+- `OVERPASS_DELAY_MS` — optional pacing between per-key queries (e.g. `1000`);
+  free mirrors rate-limit aggressively, so set this if scans return partial results
+- `CONTACT_EMAIL` / `OWNER_EMAIL` — reachable contact advertised in the
+  `User-Agent` (required by OSM's usage policy; defaults to `OWNER_EMAIL`)
+
+### Nominatim (`engine/geocode.ts`)
+Geocodes place names ("Yeshwanthpur, Bangalore") to lat/lon for manual scans,
+with a Google Geocoding fallback when `GOOGLE_MAPS_KEY`/`GOOGLE_PLACES_KEY` is
+set. Honors Nominatim's 1 request/second policy between retry attempts.
+
+Both services require a descriptive `User-Agent` with a real contact address —
+shared via `engine/osm/usage.ts`, so set `CONTACT_EMAIL` (or `OWNER_EMAIL`)
+before heavy use. See the [OSM usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+for the exact terms.
 
 ## Troubleshooting
 - **Dashboard stays blank / "No state"**: the agent's HTTP server isn't reachable. Check `AGENT_PORT=8090` in `.env`, that the agent is running, and that `LEADFINDER_AGENT_URL` on Vercel matches your current `cloudflared` tunnel URL. Tunnel URLs rotate on restart — update `LEADFINDER_AGENT_URL` and redeploy after a rotation.

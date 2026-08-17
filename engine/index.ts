@@ -162,9 +162,9 @@ async function cmdBuildSite(o: Record<string, unknown>): Promise<void> {
   const biz = await resolveBusiness(o);
   const ownerEmail = (process.env.OWNER_EMAIL as string) ?? "you@example.com";
   const { dir, config } = await scaffoldSite(biz, ownerEmail);
-  upsertSite({ slug: config.slug, leadId: biz.id, dir, status: "built" });
-  setLeadStatus(biz.id, "built", config.slug);
-  upsertLead({ id: biz.id, name: biz.name, category: biz.category, phone: biz.phone ?? "", email: biz.email ?? "", status: "built" });
+  await upsertSite({ slug: config.slug, leadId: biz.id, dir, status: "built" });
+  await setLeadStatus(biz.id, "built", config.slug);
+  await upsertLead({ id: biz.id, name: biz.name, category: biz.category, phone: biz.phone ?? "", email: biz.email ?? "", status: "built" });
   console.log(`Scaffolded site → ${dir}`);
   await runSiteBuild(dir, config.slug);
   console.log(`\nDone. Next: run deploy-site --slug ${config.slug}`);
@@ -173,12 +173,12 @@ async function cmdBuildSite(o: Record<string, unknown>): Promise<void> {
 async function cmdDeploySite(o: Record<string, unknown>): Promise<void> {
   const slug = o.slug as string;
   if (!slug) throw new Error("deploy-site needs --slug <slug>");
-  const site = getSite(slug);
+  const site = await getSite(slug);
   if (!site) throw new Error(`No site found for ${slug}. Build it first.`);
   console.log(`Deploying ${slug} to Vercel...`);
   const { url } = await deployVercel(site.dir, slug);
-  upsertSite({ slug, leadId: site.leadId, dir: site.dir, status: "deployed", liveUrl: url });
-  setLeadStatus(site.leadId ?? "", "deployed", slug, url);
+  await upsertSite({ slug, leadId: site.leadId, dir: site.dir, status: "deployed", liveUrl: url });
+  await setLeadStatus(site.leadId ?? "", "deployed", slug, url);
   const owner = (process.env.OWNER_EMAIL as string) ?? "you@example.com";
   try {
     await sendMail({
@@ -195,10 +195,10 @@ async function cmdDeploySite(o: Record<string, unknown>): Promise<void> {
 async function cmdApproveSite(o: Record<string, unknown>): Promise<void> {
   const slug = o.slug as string;
   if (!slug) throw new Error("approve-site needs --slug <slug>");
-  const site = getSite(slug);
+  const site = await getSite(slug);
   if (!site) throw new Error(`No site found for ${slug}`);
-  upsertSite({ slug, leadId: site.leadId, dir: site.dir, status: "approved", liveUrl: site.liveUrl ?? undefined });
-  setLeadStatus(site.leadId ?? "", "approved");
+  await upsertSite({ slug, leadId: site.leadId, dir: site.dir, status: "approved", liveUrl: site.liveUrl ?? undefined });
+  await setLeadStatus(site.leadId ?? "", "approved");
   console.log(`Marked ${slug} approved. It's safe to pitch now.`);
 }
 

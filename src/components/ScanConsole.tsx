@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import type { ScanProgress, ManualScanInfo } from "@/lib/types";
+import { formatDateTime } from "@/lib/format";
 
 const NICHE_SUGGESTIONS = [
   "gym", "fitness", "pub", "bar", "restaurant", "cafe", "coffee",
@@ -252,7 +253,7 @@ export function ScanConsole({
               <span>{initialScan.label}</span>
               <span className="text-text-muted">— {initialScan.found} found / {initialScan.added} added</span>
             </div>
-            <p className="mt-1 font-mono text-[10px] text-text-muted">{new Date(initialScan.at).toLocaleString()}</p>
+            <p className="mt-1 font-mono text-[10px] text-text-muted">{formatDateTime(initialScan.at)}</p>
           </div>
         )}
       </div>

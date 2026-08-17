@@ -5,7 +5,7 @@
  * /action.action as `action: "scan"`). The location can be a place name
  * ("Yeshwanthpur, Bangalore") or a literal "lat,lng".
  *
- * Results are written into the same SQLite DB + state the loop uses, so the rest
+ * Results are written into the same Postgres DB + state the loop uses, so the rest
  * of the pipeline (enrich -> build -> deploy -> approve -> pitch -> replies)
  * treats manual leads exactly like auto-detected ones.
  *
@@ -16,7 +16,7 @@ import { geocodePlace } from "../engine/geocode.js";
 import { scanOverpass } from "../engine/scanners/overpass.js";
 import { toLeads } from "../engine/export/csv.js";
 import { osmTagProvider, googlePlacesProvider, applyEnrichment } from "../engine/enrich/enrich.js";
-import { upsertLead, getDb } from "../engine/builder/database.js";
+import { upsertLead, insertScan, countLead } from "../engine/builder/database.js";
 import {
   startScanProgress,
   advanceScanProgress,
@@ -44,7 +44,7 @@ export interface ScanSummary {
   error?: string;
 }
 
-// Avoid overlapping scans (HTTP handler + loop) racing on SQLite writes.
+// Avoid overlapping scans (HTTP handler + loop) racing on the same DB.
 let scanning = false;
 
 export { getScanProgress };
@@ -52,12 +52,28 @@ export { getScanProgress };
 export async function performScan(payload: ScanPayload): Promise<ScanSummary> {
   const { location, niche = "", radiusKm = 3, minScore = 40 } = payload;
   const startedAt = Date.now();
+  const scanId = `scan-${Date.now()}`;
 
   if (scanning) {
     return { ok: true, found: 0, added: 0, coords: null, label: location, niche, source: "skipped", error: "scan already in progress" };
   }
   scanning = true;
   startScanProgress({ location, niche, radiusKm });
+
+  // Record the scan upfront (so a failed mission still shows in history), then
+  // update it with the real counts before returning.
+  await insertScan({
+    id: scanId,
+    location,
+    label: location,
+    niche,
+    radiusKm,
+    found: 0,
+    added: 0,
+    source: "scan",
+    at: new Date().toISOString(),
+    ok: false,
+  });
 
   try {
     // 1. Geocode
@@ -84,6 +100,20 @@ export async function performScan(payload: ScanPayload): Promise<ScanSummary> {
       // result — surface it as a failed mission instead of a clean empty scan.
       // finishScanProgress(false, msg) already pushes the message as an ERR log.
       const msg = `Overpass did not respond (${failedKeys}/${failedKeys + servedKeys} query groups failed). No data returned.`;
+      await insertScan({
+        id: scanId,
+        location,
+        niche,
+        radiusKm,
+        found: 0,
+        added: 0,
+        source: geo.source,
+        label: geo.displayName,
+        coords: { lat: geo.lat, lon: geo.lon },
+        at: new Date().toISOString(),
+        ok: false,
+        error: msg,
+      });
       finishScanProgress(false, msg);
       return { ok: false, found: 0, added: 0, coords: { lat: geo.lat, lon: geo.lon }, label: geo.displayName, niche, source: geo.source, error: msg };
     }
@@ -118,12 +148,26 @@ export async function performScan(payload: ScanPayload): Promise<ScanSummary> {
     });
     let added = 0;
     for (const l of leads) {
-      const before = countLead(l.id);
-      upsertLead({ id: l.id, name: l.name, category: l.category, phone: l.phone ?? "", email: l.email ?? "", status: "new" });
+      const before = await countLead(l.id);
+      await upsertLead({ id: l.id, name: l.name, category: l.category, phone: l.phone ?? "", email: l.email ?? "", status: "new", scanId });
       if (before === 0) added++;
     }
     pushScanLog("BOT", `Persisted ${added} new lead(s)`);
     log(`added ${added} new lead(s) (scan took ${Math.round((Date.now() - startedAt) / 1000)}s)`);
+
+    await insertScan({
+      id: scanId,
+      location,
+      niche,
+      radiusKm,
+      found: leads.length,
+      added,
+      source: geo.source,
+      label: geo.displayName,
+      coords: { lat: geo.lat, lon: geo.lon },
+      at: new Date().toISOString(),
+      ok: true,
+    });
 
     advanceScanProgress("done", "MISSION COMPLETE", 100, (p) => {
       p.found = leads.length;
@@ -142,19 +186,23 @@ export async function performScan(payload: ScanPayload): Promise<ScanSummary> {
     };
   } catch (e: any) {
     log(`scan error: ${e.message}`);
+    await insertScan({
+      id: scanId,
+      location,
+      niche,
+      radiusKm,
+      found: 0,
+      added: 0,
+      source: "error",
+      label: location,
+      at: new Date().toISOString(),
+      ok: false,
+      error: e.message,
+    });
     finishScanProgress(false, e.message);
     return { ok: false, found: 0, added: 0, coords: null, label: location, niche, source: "error", error: e.message };
   } finally {
     scanning = false;
-  }
-}
-
-function countLead(id: string): number {
-  try {
-    const row = getDb().prepare("SELECT COUNT(*) AS n FROM leads WHERE id=@id").get({ id }) as { n: number } | undefined;
-    return row?.n ?? 0;
-  } catch {
-    return 0;
   }
 }
 

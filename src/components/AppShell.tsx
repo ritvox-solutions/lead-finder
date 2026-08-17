@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Radar, LayoutDashboard, Users, Globe, MessageSquare, Settings as SettingsIcon } from "lucide-react";
+import { formatTime } from "@/lib/format";
 import Sidebar from "./Sidebar";
 
 const MOBILE_NAV = [
@@ -45,7 +46,7 @@ export default function AppShell({
             {title}
           </span>
           <span className="hidden font-mono text-xs text-text-muted md:inline">
-            {updatedAt ? `UPD ${new Date(updatedAt).toLocaleTimeString()}` : "NO LINK"}
+            {updatedAt ? `UPD ${formatTime(updatedAt)}` : "NO LINK"}
           </span>
         </div>
         <div className="flex items-center gap-3">
