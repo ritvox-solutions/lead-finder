@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-17T06:34:41.574Z",
+  "updatedAt": "2026-08-17T06:39:49.392Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -50,9 +50,9 @@
       "likelyWebsiteAbsent": true,
       "websiteQuality": null,
       "template": null,
-      "status": "new",
-      "siteSlug": null,
-      "siteUrl": null,
+      "status": "deployed",
+      "siteSlug": "trupti-tindi",
+      "siteUrl": "https://afed3780.trupti-tindi.pages.dev",
       "scanId": "scan-1786944046463",
       "createdAt": "2026-08-17T05:21:26.583Z",
       "updatedAt": "2026-08-17T05:21:26.583Z"
@@ -79,9 +79,9 @@
       "likelyWebsiteAbsent": true,
       "websiteQuality": null,
       "template": null,
-      "status": "rejected",
-      "siteSlug": null,
-      "siteUrl": null,
+      "status": "deployed",
+      "siteSlug": "godavari-konaseema-ruchulu",
+      "siteUrl": "https://15864da7.godavari-konaseema-ruchulu.pages.dev",
       "scanId": "scan-1786944046463",
       "createdAt": "2026-08-17T05:21:26.061Z",
       "updatedAt": "2026-08-17T05:21:26.061Z"
@@ -1165,8 +1165,8 @@
       "slug": "trupti-tindi",
       "leadId": "osm:way:346422524",
       "dir": "C:\\Users\\HP\\Desktop\\Leadfinder\\sites\\trupti-tindi",
-      "status": "built",
-      "liveUrl": null,
+      "status": "deployed",
+      "liveUrl": "https://afed3780.trupti-tindi.pages.dev",
       "createdAt": "2026-08-17T05:47:29.698Z",
       "updatedAt": "2026-08-17T05:47:29.698Z"
     },
@@ -1174,8 +1174,8 @@
       "slug": "godavari-konaseema-ruchulu",
       "leadId": "osm:way:345926492",
       "dir": "C:\\Users\\HP\\Desktop\\Leadfinder\\sites\\godavari-konaseema-ruchulu",
-      "status": "built",
-      "liveUrl": null,
+      "status": "deployed",
+      "liveUrl": "https://15864da7.godavari-konaseema-ruchulu.pages.dev",
       "createdAt": "2026-08-17T05:30:19.155Z",
       "updatedAt": "2026-08-17T05:30:19.155Z"
     }
