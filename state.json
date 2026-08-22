@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-22T13:58:04.553Z",
+  "updatedAt": "2026-08-22T14:03:14.870Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -12,20 +12,17 @@
     "scanIntervalMinutes": 30,
     "lastScanAt": "",
     "lastManualScan": {
-      "location": "Moodbidri",
+      "location": "Yeshwanthpur, Bangalore",
       "niche": "school",
-      "radiusKm": 5,
+      "radiusKm": 3,
       "found": 0,
       "added": 0,
-      "label": "Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India",
-      "coords": {
-        "lat": 13.0683654,
-        "lon": 74.9947146
-      },
-      "source": "nominatim",
-      "at": "2026-08-22T13:29:10.090Z",
-      "ok": false,
-      "error": "Overpass did not respond (9/9 query groups failed). No data returned."
+      "label": "Yeshwanthpur, Bangalore",
+      "coords": null,
+      "source": "skipped",
+      "at": "2026-08-22T14:03:08.302Z",
+      "ok": true,
+      "error": "scan already in progress"
     }
   },
   "leads": {
@@ -1300,6 +1297,19 @@
   "replies": [],
   "scans": [
     {
+      "id": "scan-1787407369078",
+      "location": "Yeshwanthpur, Bangalore",
+      "label": "Yeshwanthpur, Bangalore",
+      "niche": "school",
+      "radiusKm": 3,
+      "found": 0,
+      "added": 0,
+      "source": "scan",
+      "coords": null,
+      "at": "2026-08-22T14:02:49.079Z",
+      "ok": false
+    },
+    {
       "id": "scan-1787405257928",
       "location": "Moodbidri",
       "label": "Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India",
@@ -1378,46 +1388,35 @@
   ],
   "pendingActions": [],
   "scanProgress": {
-    "active": false,
-    "stage": "error",
-    "operation": "MISSION FAILED",
+    "active": true,
+    "stage": "querying",
+    "operation": "QUERYING OVERPASS · R3KM",
     "percent": 22,
-    "location": "Moodbidri",
+    "location": "Yeshwanthpur, Bangalore",
     "niche": "school",
-    "radiusKm": 5,
+    "radiusKm": 3,
     "found": 0,
     "noWebsite": 0,
     "enriched": 0,
     "added": 0,
-    "startedAt": "2026-08-22T13:27:37.929Z",
-    "updatedAt": "2026-08-22T13:29:08.709Z",
+    "startedAt": "2026-08-22T14:02:49.078Z",
+    "updatedAt": "2026-08-22T14:02:53.208Z",
     "logs": [
       {
-        "time": "13:27:37",
+        "time": "14:02:49",
         "tag": "SYS",
-        "msg": "Mission initialized — targeting 'Moodbidri'"
+        "msg": "Mission initialized — targeting 'Yeshwanthpur, Bangalore'"
       },
       {
-        "time": "13:27:41",
+        "time": "14:02:53",
         "tag": "SYS",
-        "msg": "Resolved to Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India (13.06837,74.99471) via nominatim"
+        "msg": "Resolved to BMTC Depot 8 (Yeshwanthpura), Subedarpalya, Bengaluru West City Corporation, Bengaluru, Bangalore North, Bengaluru Urban, Karnataka, India (13.01769,77.55550) via nominatim"
       },
       {
-        "time": "13:27:41",
+        "time": "14:02:53",
         "tag": "NET",
-        "msg": "Overpass query sent (radius 5km, niche \"school\")"
-      },
-      {
-        "time": "13:29:05",
-        "tag": "ERR",
-        "msg": "Overpass unreachable — 9/9 query group(s) failed (no endpoint responded)"
-      },
-      {
-        "time": "13:29:08",
-        "tag": "ERR",
-        "msg": "Overpass did not respond (9/9 query groups failed). No data returned."
+        "msg": "Overpass query sent (radius 3km, niche \"school\")"
       }
-    ],
-    "error": "Overpass did not respond (9/9 query groups failed). No data returned."
+    ]
   }
 }
