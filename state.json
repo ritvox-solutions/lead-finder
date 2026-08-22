@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-22T13:23:25.375Z",
+  "updatedAt": "2026-08-22T13:26:53.453Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -1359,61 +1359,5 @@
     }
   ],
   "pendingActions": [],
-  "scanProgress": {
-    "active": false,
-    "stage": "done",
-    "operation": "MISSION COMPLETE",
-    "percent": 100,
-    "location": "Moodbidri",
-    "niche": "school",
-    "radiusKm": 5,
-    "found": 4,
-    "noWebsite": 8,
-    "enriched": 8,
-    "added": 4,
-    "startedAt": "2026-08-22T13:07:23.045Z",
-    "updatedAt": "2026-08-22T13:10:57.599Z",
-    "logs": [
-      {
-        "time": "13:07:23",
-        "tag": "SYS",
-        "msg": "Mission initialized — targeting 'Moodbidri'"
-      },
-      {
-        "time": "13:07:26",
-        "tag": "SYS",
-        "msg": "Resolved to Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India (13.06837,74.99471) via nominatim"
-      },
-      {
-        "time": "13:07:26",
-        "tag": "NET",
-        "msg": "Overpass query sent (radius 5km, niche \"school\")"
-      },
-      {
-        "time": "13:10:51",
-        "tag": "ERR",
-        "msg": "Overpass unreachable — 14/16 query group(s) failed (no endpoint responded)"
-      },
-      {
-        "time": "13:10:51",
-        "tag": "NET",
-        "msg": "Received 8 POI records — 8 with no or poor-quality website"
-      },
-      {
-        "time": "13:10:52",
-        "tag": "BOT",
-        "msg": "Enrichment complete — contacts + addresses linked"
-      },
-      {
-        "time": "13:10:52",
-        "tag": "BOT",
-        "msg": "4 candidates pass min-score 60"
-      },
-      {
-        "time": "13:10:57",
-        "tag": "BOT",
-        "msg": "Persisted 4 new lead(s)"
-      }
-    ]
-  }
+  "scanProgress": null
 }
