@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-22T13:26:53.453Z",
+  "updatedAt": "2026-08-22T13:32:05.141Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -15,16 +15,17 @@
       "location": "Moodbidri",
       "niche": "school",
       "radiusKm": 5,
-      "found": 4,
-      "added": 4,
+      "found": 0,
+      "added": 0,
       "label": "Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India",
       "coords": {
         "lat": 13.0683654,
         "lon": 74.9947146
       },
       "source": "nominatim",
-      "at": "2026-08-22T13:10:58.873Z",
-      "ok": true
+      "at": "2026-08-22T13:29:10.090Z",
+      "ok": false,
+      "error": "Overpass did not respond (9/9 query groups failed). No data returned."
     }
   },
   "leads": {
@@ -1299,6 +1300,23 @@
   "replies": [],
   "scans": [
     {
+      "id": "scan-1787405257928",
+      "location": "Moodbidri",
+      "label": "Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India",
+      "niche": "school",
+      "radiusKm": 5,
+      "found": 0,
+      "added": 0,
+      "source": "nominatim",
+      "coords": {
+        "lat": 13.068365,
+        "lon": 74.99471
+      },
+      "at": "2026-08-22T13:27:37.929Z",
+      "ok": false,
+      "error": "Overpass did not respond (9/9 query groups failed). No data returned."
+    },
+    {
       "id": "scan-1787404043044",
       "location": "Moodbidri",
       "label": "Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India",
@@ -1359,5 +1377,47 @@
     }
   ],
   "pendingActions": [],
-  "scanProgress": null
+  "scanProgress": {
+    "active": false,
+    "stage": "error",
+    "operation": "MISSION FAILED",
+    "percent": 22,
+    "location": "Moodbidri",
+    "niche": "school",
+    "radiusKm": 5,
+    "found": 0,
+    "noWebsite": 0,
+    "enriched": 0,
+    "added": 0,
+    "startedAt": "2026-08-22T13:27:37.929Z",
+    "updatedAt": "2026-08-22T13:29:08.709Z",
+    "logs": [
+      {
+        "time": "13:27:37",
+        "tag": "SYS",
+        "msg": "Mission initialized — targeting 'Moodbidri'"
+      },
+      {
+        "time": "13:27:41",
+        "tag": "SYS",
+        "msg": "Resolved to Moodbidri Interstate/interdistict Bus Stand, Moodabidri, Moodabidri taluk, Dakshina Kannada, Karnataka, 574227, India (13.06837,74.99471) via nominatim"
+      },
+      {
+        "time": "13:27:41",
+        "tag": "NET",
+        "msg": "Overpass query sent (radius 5km, niche \"school\")"
+      },
+      {
+        "time": "13:29:05",
+        "tag": "ERR",
+        "msg": "Overpass unreachable — 9/9 query group(s) failed (no endpoint responded)"
+      },
+      {
+        "time": "13:29:08",
+        "tag": "ERR",
+        "msg": "Overpass did not respond (9/9 query groups failed). No data returned."
+      }
+    ],
+    "error": "Overpass did not respond (9/9 query groups failed). No data returned."
+  }
 }
