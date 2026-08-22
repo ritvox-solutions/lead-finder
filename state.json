@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-17T08:22:36.859Z",
+  "updatedAt": "2026-08-22T11:08:07.634Z",
   "settings": {
     "scanArea": "13.0177,77.5555",
     "radiusKm": 3,
@@ -1213,36 +1213,5 @@
     }
   ],
   "pendingActions": [],
-  "scanProgress": {
-    "active": true,
-    "stage": "querying",
-    "operation": "QUERYING OVERPASS · R1KM",
-    "percent": 22,
-    "location": "Kunigal",
-    "niche": "",
-    "radiusKm": 1,
-    "found": 0,
-    "noWebsite": 0,
-    "enriched": 0,
-    "added": 0,
-    "startedAt": "2026-08-17T08:20:37.110Z",
-    "updatedAt": "2026-08-17T08:20:40.248Z",
-    "logs": [
-      {
-        "time": "08:20:37",
-        "tag": "SYS",
-        "msg": "Mission initialized — targeting 'Kunigal'"
-      },
-      {
-        "time": "08:20:40",
-        "tag": "SYS",
-        "msg": "Resolved to Kunigal, Kunigal taluk, Tumakuru, Karnataka, 572130, India (13.02602,77.02227) via nominatim"
-      },
-      {
-        "time": "08:20:40",
-        "tag": "NET",
-        "msg": "Overpass query sent (radius 1km)"
-      }
-    ]
-  }
+  "scanProgress": null
 }
